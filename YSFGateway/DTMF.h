@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2015,2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2012,2013,2017,2018 by Jonathan Naylor G4KLX
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -16,21 +16,34 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#if !defined(LOG_H)
-#define	LOG_H
+#ifndef DTMF_H
+#define	DTMF_H
+
+#include "WiresX.h"
 
 #include <string>
 
-#define	LogDebug(fmt, ...)	Log(1U, fmt, ##__VA_ARGS__)
-#define	LogMessage(fmt, ...)	Log(2U, fmt, ##__VA_ARGS__)
-#define	LogInfo(fmt, ...)	Log(3U, fmt, ##__VA_ARGS__)
-#define	LogWarning(fmt, ...)	Log(4U, fmt, ##__VA_ARGS__)
-#define	LogError(fmt, ...)	Log(5U, fmt, ##__VA_ARGS__)
-#define	LogFatal(fmt, ...)	Log(6U, fmt, ##__VA_ARGS__)
+class CDTMF {
+public:
+	CDTMF();
+	~CDTMF();
 
-extern void Log(unsigned int level, const char* fmt, ...);
+	WX_STATUS decodeVDMode2(unsigned char* payload, bool end);
 
-extern bool LogInitialise(const std::string& filePath, const std::string& fileRoot, unsigned int fileLevel, unsigned int displayLevel);
-extern void LogFinalise();
+	std::string getReflector();
+
+	void reset();
+
+private:
+	std::string  m_data;
+	std::string  m_command;
+	bool         m_pressed;
+	unsigned int m_releaseCount;
+	unsigned int m_pressCount;
+	char         m_lastChar;
+
+	WX_STATUS decodeVDMode2Slice(unsigned char* ambe, bool end);
+	WX_STATUS validate() const;
+};
 
 #endif

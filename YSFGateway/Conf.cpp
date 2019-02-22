@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2015,2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2015-2019 by Jonathan Naylor G4KLX
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -32,17 +32,23 @@ enum SECTION {
   SECTION_INFO,
   SECTION_LOG,
   SECTION_APRS_FI,
-  SECTION_NETWORK
+  SECTION_NETWORK,
+  SECTION_YSF_NETWORK,
+  SECTION_FCS_NETWORK,
+  SECTION_MOBILE_GPS
 };
 
 CConf::CConf(const std::string& file) :
 m_file(file),
 m_callsign(),
 m_suffix(),
+m_id(0U),
 m_rptAddress(),
 m_rptPort(0U),
 m_myAddress(),
 m_myPort(0U),
+m_wiresXMakeUpper(true),
+m_wiresXCommandPassthrough(false),
 m_daemon(false),
 m_rxFrequency(0U),
 m_txFrequency(0U),
@@ -60,14 +66,30 @@ m_aprsEnabled(false),
 m_aprsServer(),
 m_aprsPort(0U),
 m_aprsPassword(),
-m_networkEnabled(false),
-m_networkPort(0U),
-m_networkHosts(),
-m_networkReloadTime(0U),
-m_networkParrotAddress("127.0.0.1"),
-m_networkParrotPort(0U),
+m_aprsSuffix(),
+m_aprsDescription(),
 m_networkStartup(),
-m_networkDebug(false)
+m_networkInactivityTimeout(0U),
+m_networkRevert(false),
+m_networkDebug(false),
+m_ysfNetworkEnabled(false),
+m_ysfNetworkPort(0U),
+m_ysfNetworkHosts(),
+m_ysfNetworkReloadTime(0U),
+m_ysfNetworkParrotAddress("127.0.0.1"),
+m_ysfNetworkParrotPort(0U),
+m_ysfNetworkYSF2DMRAddress("127.0.0.1"),
+m_ysfNetworkYSF2DMRPort(0U),
+m_ysfNetworkYSF2NXDNAddress("127.0.0.1"),
+m_ysfNetworkYSF2NXDNPort(0U),
+m_ysfNetworkYSF2P25Address("127.0.0.1"),
+m_ysfNetworkYSF2P25Port(0U),
+m_fcsNetworkEnabled(false),
+m_fcsNetworkFile(),
+m_fcsNetworkPort(0U),
+m_mobileGPSEnabled(false),
+m_mobileGPSAddress(),
+m_mobileGPSPort(0U)
 {
 }
 
@@ -97,17 +119,23 @@ bool CConf::read()
 		  section = SECTION_INFO;
 	  else if (::strncmp(buffer, "[Log]", 5U) == 0)
 		  section = SECTION_LOG;
-	  else if (::strncmp(buffer, "[aprs.fi]", 5U) == 0)
+	  else if (::strncmp(buffer, "[aprs.fi]", 9U) == 0)
 		  section = SECTION_APRS_FI;
-	  else if (::strncmp(buffer, "[Network]", 5U) == 0)
+	  else if (::strncmp(buffer, "[Network]", 9U) == 0)
 		  section = SECTION_NETWORK;
+	  else if (::strncmp(buffer, "[YSF Network]", 13U) == 0)
+		  section = SECTION_YSF_NETWORK;
+	  else if (::strncmp(buffer, "[FCS Network]", 13U) == 0)
+		  section = SECTION_FCS_NETWORK;
+	  else if (::strncmp(buffer, "[Mobile GPS]", 12U) == 0)
+		  section = SECTION_MOBILE_GPS;
 	  else
-        section = SECTION_NONE;
+	  	  section = SECTION_NONE;
 
-      continue;
+	  continue;
     }
 
-    char* key   = ::strtok(buffer, " \t=\r\n");
+    char* key = ::strtok(buffer, " \t=\r\n");
     if (key == NULL)
       continue;
 
@@ -123,7 +151,9 @@ bool CConf::read()
 			for (unsigned int i = 0U; value[i] != 0; i++)
 				value[i] = ::toupper(value[i]);
 			m_suffix = value;
-		} else if (::strcmp(key, "RptAddress") == 0)
+		} else if (::strcmp(key, "Id") == 0)
+			m_id = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "RptAddress") == 0)
 			m_rptAddress = value;
 		else if (::strcmp(key, "RptPort") == 0)
 			m_rptPort = (unsigned int)::atoi(value);
@@ -131,6 +161,10 @@ bool CConf::read()
 			m_myAddress = value;
 		else if (::strcmp(key, "LocalPort") == 0)
 			m_myPort = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "WiresXMakeUpper") == 0)
+			m_wiresXMakeUpper = ::atoi(value) == 1;
+		else if (::strcmp(key, "WiresXCommandPassthrough") == 0)
+			m_wiresXCommandPassthrough = ::atoi(value) == 1;
 		else if (::strcmp(key, "Daemon") == 0)
 			m_daemon = ::atoi(value) == 1;
 	} else if (section == SECTION_INFO) {
@@ -168,23 +202,58 @@ bool CConf::read()
 			m_aprsPort = (unsigned int)::atoi(value);
 		else if (::strcmp(key, "Password") == 0)
 			m_aprsPassword = value;
+		else if (::strcmp(key, "Suffix") == 0)
+			m_aprsSuffix = value;
+		else if (::strcmp(key, "Description") == 0)
+			m_aprsDescription = value;
 	} else if (section == SECTION_NETWORK) {
-		if (::strcmp(key, "Enable") == 0)
-			m_networkEnabled = ::atoi(value) == 1;
-		else if (::strcmp(key, "Port") == 0)
-			m_networkPort = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "Hosts") == 0)
-			m_networkHosts = value;
-		else if (::strcmp(key, "ReloadTime") == 0)
-			m_networkReloadTime = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "ParrotAddress") == 0)
-			m_networkParrotAddress = value;
-		else if (::strcmp(key, "ParrotPort") == 0)
-			m_networkParrotPort = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "Startup") == 0)
+		if (::strcmp(key, "Startup") == 0)
 			m_networkStartup = value;
+		else if (::strcmp(key, "InactivityTimeout") == 0)
+			m_networkInactivityTimeout = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "Revert") == 0)
+			m_networkRevert = ::atoi(value) == 1;
 		else if (::strcmp(key, "Debug") == 0)
 			m_networkDebug = ::atoi(value) == 1;
+	} else if (section == SECTION_YSF_NETWORK) {
+		if (::strcmp(key, "Enable") == 0)
+			m_ysfNetworkEnabled = ::atoi(value) == 1;
+		else if (::strcmp(key, "Port") == 0)
+			m_ysfNetworkPort = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "Hosts") == 0)
+			m_ysfNetworkHosts = value;
+		else if (::strcmp(key, "ReloadTime") == 0)
+			m_ysfNetworkReloadTime = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "ParrotAddress") == 0)
+			m_ysfNetworkParrotAddress = value;
+		else if (::strcmp(key, "ParrotPort") == 0)
+			m_ysfNetworkParrotPort = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "YSF2DMRAddress") == 0)
+			m_ysfNetworkYSF2DMRAddress = value;
+		else if (::strcmp(key, "YSF2DMRPort") == 0)
+			m_ysfNetworkYSF2DMRPort = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "YSF2NXDNAddress") == 0)
+			m_ysfNetworkYSF2NXDNAddress = value;
+		else if (::strcmp(key, "YSF2NXDNPort") == 0)
+			m_ysfNetworkYSF2NXDNPort = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "YSF2P25Address") == 0)
+			m_ysfNetworkYSF2P25Address = value;
+		else if (::strcmp(key, "YSF2P25Port") == 0)
+			m_ysfNetworkYSF2P25Port = (unsigned int)::atoi(value);
+	} else if (section == SECTION_FCS_NETWORK) {
+		if (::strcmp(key, "Enable") == 0)
+			m_fcsNetworkEnabled = ::atoi(value) == 1;
+		else if (::strcmp(key, "Rooms") == 0)
+			m_fcsNetworkFile = value;
+		else if (::strcmp(key, "Port") == 0)
+			m_fcsNetworkPort = (unsigned int)::atoi(value);
+	} else if (section == SECTION_MOBILE_GPS) {
+		if (::strcmp(key, "Enable") == 0)
+			m_mobileGPSEnabled = ::atoi(value) == 1;
+		else if (::strcmp(key, "Address") == 0)
+			m_mobileGPSAddress = value;
+		else if (::strcmp(key, "Port") == 0)
+			m_mobileGPSPort = (unsigned int)::atoi(value);
 	}
   }
 
@@ -201,6 +270,11 @@ std::string CConf::getCallsign() const
 std::string CConf::getSuffix() const
 {
 	return m_suffix;
+}
+
+unsigned int CConf::getId() const
+{
+	return m_id;
 }
 
 std::string CConf::getRptAddress() const
@@ -221,6 +295,16 @@ std::string CConf::getMyAddress() const
 unsigned int CConf::getMyPort() const
 {
 	return m_myPort;
+}
+
+bool CConf::getWiresXMakeUpper() const
+{
+	return m_wiresXMakeUpper;
+}
+
+bool CConf::getWiresXCommandPassthrough() const
+{
+	return m_wiresXCommandPassthrough;
 }
 
 bool CConf::getDaemon() const
@@ -308,34 +392,14 @@ std::string CConf::getAPRSPassword() const
 	return m_aprsPassword;
 }
 
-bool CConf::getNetworkEnabled() const
+std::string CConf::getAPRSSuffix() const
 {
-	return m_networkEnabled;
+	return m_aprsSuffix;
 }
 
-unsigned int CConf::getNetworkPort() const
+std::string CConf::getAPRSDescription() const
 {
-  return m_networkPort;
-}
-
-std::string CConf::getNetworkHosts() const
-{
-	return m_networkHosts;
-}
-
-unsigned int CConf::getNetworkReloadTime() const
-{
-	return m_networkReloadTime;
-}
-
-std::string CConf::getNetworkParrotAddress() const
-{
-	return m_networkParrotAddress;
-}
-
-unsigned int CConf::getNetworkParrotPort() const
-{
-	return m_networkParrotPort;
+	return m_aprsDescription;
 }
 
 std::string CConf::getNetworkStartup() const
@@ -343,7 +407,108 @@ std::string CConf::getNetworkStartup() const
 	return m_networkStartup;
 }
 
+unsigned int CConf::getNetworkInactivityTimeout() const
+{
+	return m_networkInactivityTimeout;
+}
+
+bool CConf::getNetworkRevert() const
+{
+	return m_networkRevert;
+}
+
 bool CConf::getNetworkDebug() const
 {
 	return m_networkDebug;
+}
+
+bool CConf::getYSFNetworkEnabled() const
+{
+	return m_ysfNetworkEnabled;
+}
+
+unsigned int CConf::getYSFNetworkPort() const
+{
+  return m_ysfNetworkPort;
+}
+
+std::string CConf::getYSFNetworkHosts() const
+{
+	return m_ysfNetworkHosts;
+}
+
+unsigned int CConf::getYSFNetworkReloadTime() const
+{
+	return m_ysfNetworkReloadTime;
+}
+
+std::string CConf::getYSFNetworkParrotAddress() const
+{
+	return m_ysfNetworkParrotAddress;
+}
+
+unsigned int CConf::getYSFNetworkParrotPort() const
+{
+	return m_ysfNetworkParrotPort;
+}
+
+std::string CConf::getYSFNetworkYSF2DMRAddress() const
+{
+	return m_ysfNetworkYSF2DMRAddress;
+}
+
+unsigned int CConf::getYSFNetworkYSF2DMRPort() const
+{
+	return m_ysfNetworkYSF2DMRPort;
+}
+
+std::string CConf::getYSFNetworkYSF2NXDNAddress() const
+{
+	return m_ysfNetworkYSF2NXDNAddress;
+}
+
+unsigned int CConf::getYSFNetworkYSF2NXDNPort() const
+{
+	return m_ysfNetworkYSF2NXDNPort;
+}
+
+std::string CConf::getYSFNetworkYSF2P25Address() const
+{
+	return m_ysfNetworkYSF2P25Address;
+}
+
+unsigned int CConf::getYSFNetworkYSF2P25Port() const
+{
+	return m_ysfNetworkYSF2P25Port;
+}
+
+
+bool CConf::getFCSNetworkEnabled() const
+{
+	return m_fcsNetworkEnabled;
+}
+
+std::string CConf::getFCSNetworkFile() const
+{
+	return m_fcsNetworkFile;
+}
+
+unsigned int CConf::getFCSNetworkPort() const
+{
+	return m_fcsNetworkPort;
+}
+
+bool CConf::getMobileGPSEnabled() const
+{
+	return m_mobileGPSEnabled;
+}
+
+std::string CConf::getMobileGPSAddress() const
+{
+	return m_mobileGPSAddress;
+}
+
+unsigned int CConf::getMobileGPSPort() const
+{
+	return m_mobileGPSPort;
 }

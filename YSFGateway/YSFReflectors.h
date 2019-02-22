@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 2016 by Jonathan Naylor G4KLX
+*   Copyright (C) 2016-2019 by Jonathan Naylor G4KLX
 *
 *   This program is free software; you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -16,14 +16,19 @@
 *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#if !defined(Reflectors_H)
-#define	Reflectors_H
+#if !defined(YSFReflectors_H)
+#define	YSFReflectors_H
 
 #include "UDPSocket.h"
 #include "Timer.h"
 
 #include <vector>
 #include <string>
+
+enum YSF_TYPE {
+	YT_YSF,
+	YT_FCS
+};
 
 class CYSFReflector {
 public:
@@ -33,7 +38,9 @@ public:
 	m_desc(),
 	m_count("000"),
 	m_address(),
-	m_port(0U)
+	m_port(0U),
+	m_type(YT_YSF),
+	m_wiresX(false)
 	{
 	}
 
@@ -43,22 +50,31 @@ public:
 	std::string  m_count;
 	in_addr      m_address;
 	unsigned int m_port;
+	YSF_TYPE     m_type;
+	bool         m_wiresX;
 };
 
-class CReflectors {
+class CYSFReflectors {
 public:
-	CReflectors(const std::string& hostsFile, unsigned int reloadTime);
-	~CReflectors();
+	CYSFReflectors(const std::string& hostsFile, unsigned int reloadTime, bool makeUpper);
+	~CYSFReflectors();
 
-	void setParrot(const std::string& address, unsigned int port);
+	void setParrot(const std::string& address, unsigned int port);	
+	void setYSF2DMR(const std::string& address, unsigned int port);
+	void setYSF2NXDN(const std::string& address, unsigned int port);
+	void setYSF2P25(const std::string& address, unsigned int port);
+	void addFCSRoom(const std::string& id, const std::string& name);
 
 	bool load();
 
-	CYSFReflector* find(const std::string& id);
+	CYSFReflector* findById(const std::string& id);
+	CYSFReflector* findByName(const std::string& name);
 
 	std::vector<CYSFReflector*>& current();
 
 	std::vector<CYSFReflector*>& search(const std::string& name);
+
+	bool reload();
 
 	void clock(unsigned int ms);
 
@@ -66,8 +82,17 @@ private:
 	std::string                 m_hostsFile;
 	std::string                 m_parrotAddress;
 	unsigned int                m_parrotPort;
-	std::vector<CYSFReflector*> m_reflectors;
+	std::string                 m_YSF2DMRAddress;
+	unsigned int                m_YSF2DMRPort;
+	std::string                 m_YSF2NXDNAddress;
+	unsigned int                m_YSF2NXDNPort;
+	std::string                 m_YSF2P25Address;
+	unsigned int                m_YSF2P25Port;
+	std::vector<std::pair<std::string, std::string>> m_fcsRooms;
+	std::vector<CYSFReflector*> m_newReflectors;
+	std::vector<CYSFReflector*> m_currReflectors;
 	std::vector<CYSFReflector*> m_search;
+	bool                        m_makeUpper;
 	CTimer                      m_timer;
 };
 

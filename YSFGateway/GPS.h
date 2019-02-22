@@ -1,5 +1,5 @@
 /*
-*   Copyright (C) 2016 by Jonathan Naylor G4KLX
+*   Copyright (C) 2016,2017,2018 by Jonathan Naylor G4KLX
 *
 *   This program is free software; you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -25,23 +25,15 @@
 
 class CGPS {
 public:
-	CGPS(const std::string& callsign, const std::string& suffix, const std::string& password, const std::string& address, unsigned int port);
+	CGPS(CAPRSWriter* writer);
 	~CGPS();
-
-	void setInfo(unsigned int txFrequency, unsigned int rxFrequency, float latitude, float longitude, int height);
-
-	bool open();
 
 	void data(const unsigned char* source, const unsigned char* data, unsigned char fi, unsigned char dt, unsigned char fn, unsigned char ft);
 
-	void clock(unsigned int ms);
-
 	void reset();
 
-	void close();
-
 private:
-	CAPRSWriter    m_writer;
+	CAPRSWriter*   m_writer;
 	unsigned char* m_buffer;
 	bool           m_sent;
 

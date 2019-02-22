@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2015,2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2015-2019 by Jonathan Naylor G4KLX
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 #define	CONF_H
 
 #include <string>
-#include <vector>
 
 class CConf
 {
@@ -33,10 +32,13 @@ public:
   // The General section
   std::string  getCallsign() const;
   std::string  getSuffix() const;
+  unsigned int getId() const;
   std::string  getRptAddress() const;
   unsigned int getRptPort() const;
   std::string  getMyAddress() const;
   unsigned int getMyPort() const;
+  bool         getWiresXMakeUpper() const;
+  bool         getWiresXCommandPassthrough() const;
   bool         getDaemon() const;
 
   // The Info section
@@ -60,25 +62,50 @@ public:
   std::string  getAPRSServer() const;
   unsigned int getAPRSPort() const;
   std::string  getAPRSPassword() const;
+  std::string  getAPRSSuffix() const;
+  std::string  getAPRSDescription() const;
 
   // The Network section
-  bool         getNetworkEnabled() const;
-  unsigned int getNetworkPort() const;
-  std::string  getNetworkHosts() const;
-  unsigned int getNetworkReloadTime() const;
-  std::string  getNetworkParrotAddress() const;
-  unsigned int getNetworkParrotPort() const;
   std::string  getNetworkStartup() const;
+  unsigned int getNetworkInactivityTimeout() const;
+  bool         getNetworkRevert() const;
   bool         getNetworkDebug() const;
+
+  // The YSF Network section
+  bool         getYSFNetworkEnabled() const;
+  unsigned int getYSFNetworkPort() const;
+  std::string  getYSFNetworkHosts() const;
+  unsigned int getYSFNetworkReloadTime() const;
+  std::string  getYSFNetworkParrotAddress() const;
+  unsigned int getYSFNetworkParrotPort() const;
+  std::string  getYSFNetworkYSF2DMRAddress() const;
+  unsigned int getYSFNetworkYSF2DMRPort() const;
+  std::string  getYSFNetworkYSF2NXDNAddress() const;
+  unsigned int getYSFNetworkYSF2NXDNPort() const;
+  std::string  getYSFNetworkYSF2P25Address() const;
+  unsigned int getYSFNetworkYSF2P25Port() const;
+
+  // The FCS Network section
+  bool         getFCSNetworkEnabled() const;
+  std::string  getFCSNetworkFile() const;
+  unsigned int getFCSNetworkPort() const;
+
+  // The Mobile GPS section
+  bool         getMobileGPSEnabled() const;
+  std::string  getMobileGPSAddress() const;
+  unsigned int getMobileGPSPort() const;
 
 private:
   std::string  m_file;
   std::string  m_callsign;
   std::string  m_suffix;
+  unsigned int m_id;
   std::string  m_rptAddress;
   unsigned int m_rptPort;
   std::string  m_myAddress;
   unsigned int m_myPort;
+  bool         m_wiresXMakeUpper;
+  bool         m_wiresXCommandPassthrough;
   bool         m_daemon;
 
   unsigned int m_rxFrequency;
@@ -99,15 +126,34 @@ private:
   std::string  m_aprsServer;
   unsigned int m_aprsPort;
   std::string  m_aprsPassword;
+  std::string  m_aprsSuffix;
+  std::string  m_aprsDescription;
 
-  bool         m_networkEnabled;
-  unsigned int m_networkPort;
-  std::string  m_networkHosts;
-  unsigned int m_networkReloadTime;
-  std::string  m_networkParrotAddress;
-  unsigned int m_networkParrotPort;
   std::string  m_networkStartup;
+  unsigned int m_networkInactivityTimeout;
+  bool         m_networkRevert;
   bool         m_networkDebug;
+
+  bool         m_ysfNetworkEnabled;
+  unsigned int m_ysfNetworkPort;
+  std::string  m_ysfNetworkHosts;
+  unsigned int m_ysfNetworkReloadTime;
+  std::string  m_ysfNetworkParrotAddress;
+  unsigned int m_ysfNetworkParrotPort;
+  std::string  m_ysfNetworkYSF2DMRAddress;
+  unsigned int m_ysfNetworkYSF2DMRPort;
+  std::string  m_ysfNetworkYSF2NXDNAddress;
+  unsigned int m_ysfNetworkYSF2NXDNPort;
+  std::string  m_ysfNetworkYSF2P25Address;
+  unsigned int m_ysfNetworkYSF2P25Port;
+
+  bool         m_fcsNetworkEnabled;
+  std::string  m_fcsNetworkFile;
+  unsigned int m_fcsNetworkPort;
+
+  bool         m_mobileGPSEnabled;
+  std::string  m_mobileGPSAddress;
+  unsigned int m_mobileGPSPort;
 };
 
 #endif

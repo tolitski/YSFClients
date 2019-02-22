@@ -1,5 +1,5 @@
 /*
- *   Copyright (C) 2009-2014,2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2009-2014,2016,2018 by Jonathan Naylor G4KLX
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
  */
 
 #include "Network.h"
-#include "Utils.h"
-#include "Log.h"
 
 #include <cstdio>
 #include <cassert>
@@ -29,8 +27,7 @@ const unsigned int BUFFER_LENGTH = 200U;
 CNetwork::CNetwork(unsigned int port) :
 m_socket(port),
 m_address(),
-m_port(0U),
-m_buffer(1000U, "YSF Network")
+m_port(0U)
 {
 }
 
@@ -40,7 +37,7 @@ CNetwork::~CNetwork()
 
 bool CNetwork::open()
 {
-	LogInfo("Opening YSF network connection");
+	::fprintf(stdout, "Opening YSF network connection\n");
 
 	return m_socket.open();
 }
@@ -51,8 +48,6 @@ bool CNetwork::write(const unsigned char* data)
 		return true;
 
 	assert(data != NULL);
-
-	CUtils::dump(1U, "YSF Network Data Sent", data, 155U);
 
 	return m_socket.write(data, 155U, m_address, m_port);
 }
@@ -80,54 +75,38 @@ bool CNetwork::writePoll(const in_addr& address, unsigned int port)
 	return m_socket.write(buffer, 14U, address, port);
 }
 
-void CNetwork::clock(unsigned int ms)
+unsigned int CNetwork::read(unsigned char* data)
 {
-	unsigned char buffer[BUFFER_LENGTH];
-
 	in_addr address;
 	unsigned int port;
-	int length = m_socket.read(buffer, BUFFER_LENGTH, address, port);
+	int length = m_socket.read(data, BUFFER_LENGTH, address, port);
 	if (length <= 0)
-		return;
+		return 0U;
 
 	// Handle incoming polls
-	if (::memcmp(buffer, "YSFP", 4U) == 0) {
+	if (::memcmp(data, "YSFP", 4U) == 0) {
 		writePoll(address, port);
-		return;
+		return 0U;
 	}
 
 	// Handle incoming unlinks
-	if (::memcmp(buffer, "YSFU", 4U) == 0)
-		return;
+	if (::memcmp(data, "YSFU", 4U) == 0)
+		return 0U;
 
 	// Handle the status command
-	if (::memcmp(buffer, "YSFS", 4U) == 0) {
+	if (::memcmp(data, "YSFS", 4U) == 0) {
 		unsigned char status[50U];
 		::sprintf((char*)status, "YSFS%05u%-16.16s%-14.14s%03u", 1U, "Parrot", "Parrot", 0U);
 		m_socket.write(status, 42U, address, port);
-		return;
+		return 0U;
 	}
 
 	// Invalid packet type?
-	if (::memcmp(buffer, "YSFD", 4U) != 0)
-		return;
+	if (::memcmp(data, "YSFD", 4U) != 0)
+		return 0U;
 
 	m_address.s_addr = address.s_addr;
 	m_port = port;
-
-	CUtils::dump(1U, "YSF Network Data Received", buffer, length);
-
-	m_buffer.addData(buffer, 155U);
-}
-
-unsigned int CNetwork::read(unsigned char* data)
-{
-	assert(data != NULL);
-
-	if (m_buffer.isEmpty())
-		return 0U;
-
-	m_buffer.getData(data, 155U);
 
 	return 155U;
 }
@@ -141,5 +120,5 @@ void CNetwork::close()
 {
 	m_socket.close();
 
-	LogInfo("Closing YSF network connection");
+	::fprintf(stdout, "Closing YSF network connection\n");
 }
